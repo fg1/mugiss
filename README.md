@@ -33,7 +33,7 @@ The server will then load the file (`FR.txt` in this case), and start serving HT
 
 To query the server:
 ```
-$ curl http://127.0.0.1:8080/rg/48.858222/2.2945                                                                                          
+$ curl http://127.0.0.1:8080/rg/48.858222/2.2945
 {"city":"Paris","country_iso3166":"FR","type":""}
 ```
 
