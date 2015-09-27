@@ -38,10 +38,17 @@ $ curl http://127.0.0.1:8080/rg/48.858222/2.2945
 ```
 
 
+## Current GIS data sources
+
+- City administrative boundaries: [gisgraphy.com](http://download.gisgraphy.com/openstreetmap/csv/cities/)
+- ISO-3166 country codes: [lukes/ISO-3166-Countries-with-Regional-Codes](https://github.com/lukes/ISO-3166-Countries-with-Regional-Codes)
+
+
 ## TODO list for future versions
 
 Here is a list of possible future improvements.
 
+- [ ] Better memory management
 - [ ] Automatically download the GIS data
     - [ ] Embed a world map in the server to determine which country to download
     - [ ] Download the country data via a script or directly from the server
