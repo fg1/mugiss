@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/csv"
+	"fmt"
 	"io"
 	"log"
 	"math"
@@ -10,6 +11,38 @@ import (
 	"github.com/dhconnelly/rtreego"
 	"github.com/paulsmith/gogeos/geos"
 )
+
+// Imports a CSV file mapping its ISO 3166-2 country code to its name
+// The expected CSV columns are:
+//   0 : ISO 3166-2 country code
+//   1 : Country name
+func load_country_names(fname string) (map[string]string, error) {
+	m := make(map[string]string)
+	f, err := os.Open(fname)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	r := csv.NewReader(f)
+	for {
+		cols, err := r.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		if len(cols) != 2 {
+			return nil, fmt.Errorf("Invalid column format in", fname, cols)
+		}
+		if len(cols[0]) != 2 {
+			return nil, fmt.Errorf("Invalid country code in", fname, cols)
+		}
+		m[cols[0]] = cols[1]
+	}
+	return m, nil
+}
 
 // Returns the bounding box of the geos.Geometry as a rtreego.Rect
 func RtreeBboxg(g *geos.Geometry, tol float64) (*rtreego.Rect, error) {
@@ -31,7 +64,7 @@ func RtreeBboxg(g *geos.Geometry, tol float64) (*rtreego.Rect, error) {
 }
 
 // Loads a CSV file from http://download.gisgraphy.com/openstreetmap/csv/cities/
-// The CSV columns are:
+// The expected CSV columns are:
 //   0 :  Node type;   N|W|R (in uppercase), wheter it is a Node, Way or Relation in the openstreetmap Model
 //   1 :  id;  The openstreetmap id
 //   2 :  name;    the default name of the city
@@ -78,9 +111,9 @@ func load_gisgraphy_cities_csv(rt *rtreego.Rtree, fname string) (int, error) {
 		}
 		obj := GeoObj{rect,
 			&GeoData{City: cols[2],
-				Country: cols[3],
-				Type:    cols[8],
-				Geom:    geom}}
+				CountryCode: cols[3],
+				Type:        cols[8],
+				Geom:        geom}}
 		rt.Insert(&obj)
 		loaded_cities++
 	}

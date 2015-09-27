@@ -20,6 +20,9 @@ import (
 // which objects are near the point of interest.
 var rt *rtreego.Rtree
 
+// Holds the translation between ISO-3166-2 country code and country name
+var countries_exp map[string]string
+
 // Interface to access the data embed in a rtreego.Spatial object
 type SpatialData interface {
 	rtreego.Spatial
@@ -27,10 +30,11 @@ type SpatialData interface {
 }
 
 type GeoData struct {
-	City    string         `json:"city"`
-	Country string         `json:"country_iso3166"`
-	Type    string         `json:"type"`
-	Geom    *geos.Geometry `json:"-"`
+	City        string         `json:"city"`
+	CountryName string         `json:"country"`
+	CountryCode string         `json:"country_iso3166"`
+	Type        string         `json:"type"`
+	Geom        *geos.Geometry `json:"-"`
 }
 
 // Represents the data which will be stored in the R-Tree
@@ -71,6 +75,7 @@ func reverseGeocodingHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	geodata.CountryName = countries_exp[geodata.CountryCode]
 	b, err := json.Marshal(geodata)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -88,13 +93,20 @@ func main() {
 	}
 
 	options := struct {
-		CityFiles  []string      `goptions:"-d, description='Data files to load'"`
-		Help       goptions.Help `goptions:"-h, --help, description='Show this help'"`
-		ListenAddr *net.TCPAddr  `goptions:"-l, --listen, description='Listen address for HTTP server'"`
+		CityFiles    []string      `goptions:"-d, description='Data files to load'"`
+		CountryNames string        `goptions:"-c, description='CSV file holding country names'"`
+		Help         goptions.Help `goptions:"-h, --help, description='Show this help'"`
+		ListenAddr   *net.TCPAddr  `goptions:"-l, --listen, description='Listen address for HTTP server'"`
 	}{
-		ListenAddr: daddr,
+		CountryNames: "data/countries_en.csv",
+		ListenAddr:   daddr,
 	}
 	goptions.ParseAndFail(&options)
+
+	countries_exp, err = load_country_names(options.CountryNames)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	rt = rtreego.NewTree(2, 25, 50)
 	total_loaded_cities := 0
