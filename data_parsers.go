@@ -12,12 +12,18 @@ import (
 	"github.com/paulsmith/gogeos/geos"
 )
 
+type CountryDetails struct {
+	ISO3166_3 string
+	Name      string
+}
+
 // Imports a CSV file mapping its ISO 3166-2 country code to its name
 // The expected CSV columns are:
 //   0 : ISO 3166-2 country code
-//   1 : Country name
-func load_country_names(fname string) (map[string]string, error) {
-	m := make(map[string]string)
+//   1 : ISO 3166-3 country code
+//   2 : Country name
+func load_country_names(fname string) (map[string]CountryDetails, error) {
+	m := make(map[string]CountryDetails)
 	f, err := os.Open(fname)
 	if err != nil {
 		return nil, err
@@ -33,13 +39,16 @@ func load_country_names(fname string) (map[string]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		if len(cols) != 2 {
+		if len(cols) != 3 {
 			return nil, fmt.Errorf("Invalid column format in", fname, cols)
 		}
 		if len(cols[0]) != 2 {
 			return nil, fmt.Errorf("Invalid country code in", fname, cols)
 		}
-		m[cols[0]] = cols[1]
+		if len(cols[1]) != 3 {
+			return nil, fmt.Errorf("Invalid country code in", fname, cols)
+		}
+		m[cols[0]] = CountryDetails{ISO3166_3: cols[1], Name: cols[2]}
 	}
 	return m, nil
 }
@@ -111,9 +120,9 @@ func load_gisgraphy_cities_csv(rt *rtreego.Rtree, fname string) (int, error) {
 		}
 		obj := GeoObj{rect,
 			&GeoData{City: cols[2],
-				CountryCode: cols[3],
-				Type:        cols[8],
-				Geom:        geom}}
+				CountryCode_2: cols[3],
+				Type:          cols[8],
+				Geom:          geom}}
 		rt.Insert(&obj)
 		loaded_cities++
 	}

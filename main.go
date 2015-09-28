@@ -20,8 +20,8 @@ import (
 // which objects are near the point of interest.
 var rt *rtreego.Rtree
 
-// Holds the translation between ISO-3166-2 country code and country name
-var countries_exp map[string]string
+// Holds the translation between ISO-3166-2 country code and country details
+var countries_exp map[string]CountryDetails
 
 // Interface to access the data embed in a rtreego.Spatial object
 type SpatialData interface {
@@ -30,11 +30,12 @@ type SpatialData interface {
 }
 
 type GeoData struct {
-	City        string         `json:"city"`
-	CountryName string         `json:"country"`
-	CountryCode string         `json:"country_iso3166"`
-	Type        string         `json:"type"`
-	Geom        *geos.Geometry `json:"-"`
+	City          string         `json:"city"`
+	CountryName   string         `json:"country"`
+	CountryCode_2 string         `json:"country_iso3166-2"`
+	CountryCode_3 string         `json:"country_iso3166-3"`
+	Type          string         `json:"type"`
+	Geom          *geos.Geometry `json:"-"`
 }
 
 // Represents the data which will be stored in the R-Tree
@@ -53,29 +54,42 @@ func (c *GeoObj) GetData() *GeoData {
 	return c.geoData
 }
 
-// Parses /q/<lat>/<lng> and returns a JSON describing the reverse geocoding
+// Parses /rg/<lat>/<lng> or /rg/<lat>/<lng>/<precision> and returns a JSON describing the reverse geocoding
 func reverseGeocodingHandler(w http.ResponseWriter, r *http.Request) {
-	latlng := strings.Split(r.URL.Path[len("/rg/"):], "/")
-	if len(latlng) != 2 {
+	params := strings.Split(r.URL.Path[len("/rg/"):], "/")
+	if len(params) != 2 && len(params) != 3 {
 		http.Error(w, "Invalid format for lat/lon", http.StatusInternalServerError)
 		return
 	}
-	lat, err := strconv.ParseFloat(latlng[0], 64)
+
+	lat, err := strconv.ParseFloat(params[0], 64)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	lng, err := strconv.ParseFloat(latlng[1], 64)
+	lng, err := strconv.ParseFloat(params[1], 64)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	geodata, err := reverseGeocode(rt, lat, lng)
+	precision := 1e-4
+	if len(params) == 3 {
+		precision, err = strconv.ParseFloat(params[2], 64)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	geodata, err := reverseGeocode(rt, lat, lng, precision)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	geodata.CountryName = countries_exp[geodata.CountryCode]
+	if details, ok := countries_exp[geodata.CountryCode_2]; ok {
+		geodata.CountryName = details.Name
+		geodata.CountryCode_3 = details.ISO3166_3
+	}
 	b, err := json.Marshal(geodata)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
