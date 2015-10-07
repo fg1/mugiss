@@ -1,12 +1,14 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 	"math"
 
 	"github.com/dhconnelly/rtreego"
 	"github.com/paulsmith/gogeos/geos"
 )
+
+var ErrNoMatchFound = errors.New("No match found in rtree")
 
 // Searches the R-Tree to find the place corresponding to the given lat,lng
 // First do a search of the nearest entities (city, ...) according to their
@@ -17,7 +19,7 @@ func reverseGeocode(rt *rtreego.Rtree, lat, lng, precision float64) (*GeoData, e
 	// TODO: Check that 10 is a good value or modify rtreego
 	results := rt.NearestNeighbors(10, rpt)
 	if results[0] == nil {
-		return nil, fmt.Errorf("No result returned by RTree")
+		return nil, ErrNoMatchFound
 	}
 
 	mindist := math.MaxFloat64
@@ -44,5 +46,5 @@ func reverseGeocode(rt *rtreego.Rtree, lat, lng, precision float64) (*GeoData, e
 	if mindist < precision {
 		return argmindist, nil
 	}
-	return nil, fmt.Errorf("No containing city found")
+	return nil, ErrNoMatchFound
 }

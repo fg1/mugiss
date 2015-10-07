@@ -23,24 +23,31 @@ $ go build
 
 ## Usage
 
-First you need to download the countries you are interested from the [gisgraph website](http://download.gisgraphy.com/openstreetmap/csv/cities/) and unzip the corresponding file.
+First you need to download the countries you are interested from the [gisgraph website](http://download.gisgraphy.com/openstreetmap/csv/cities/).
 
 You can then start the webserver:
 ```
-$ ./mugiss -d FR.txt
+$ ./mugiss -d FR.tar.bz2
 ```
-The server will then load the file (`FR.txt` in this case), and start serving HTTP requests once finished.
+The server will then load the file (`FR.tar.bz2` in this case), and start serving HTTP requests once finished.
 
-To query the server:
+Example:
 ```
-$ curl http://127.0.0.1:8080/rg/48.858222/2.2945
-{"city":"Paris","country_iso3166":"FR","type":""}
+$ curl -s http://127.0.0.1:8080/rg/48.858222/2.2945 | aeson-pretty -s
+{
+    "city": "Paris",
+    "country": "France",
+    "country_iso3166-2": "FR",
+    "country_iso3166-3": "FRA",
+    "type": "city"
+}
 ```
 
 
 ## Current GIS data sources
 
 - City administrative boundaries: [gisgraphy.com](http://download.gisgraphy.com/openstreetmap/csv/cities/)
+- Country administrative boundaries: [delight-im/FreeGeoDB](https://github.com/delight-im/FreeGeoDB)
 - ISO-3166 country codes: [lukes/ISO-3166-Countries-with-Regional-Codes](https://github.com/lukes/ISO-3166-Countries-with-Regional-Codes)
 
 

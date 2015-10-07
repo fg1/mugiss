@@ -19,8 +19,10 @@ import (
 // through their bounding box. The goal of the R-Tree is only to quickly target
 // which objects are near the point of interest.
 var rt *rtreego.Rtree
+var rt_countries *rtreego.Rtree
 
-// Holds the translation between ISO-3166-2 country code and country details
+// Holds the translation between ISO-3166-2 country code and country details.
+// This map can also be used to translate country names.
 var countries_exp map[string]CountryDetails
 
 // Interface to access the data embed in a rtreego.Spatial object
@@ -30,7 +32,7 @@ type SpatialData interface {
 }
 
 type GeoData struct {
-	City          string         `json:"city"`
+	City          string         `json:"city,omitempty"`
 	CountryName   string         `json:"country"`
 	CountryCode_2 string         `json:"country_iso3166-2"`
 	CountryCode_3 string         `json:"country_iso3166-3"`
@@ -52,6 +54,13 @@ func (c *GeoObj) Bounds() *rtreego.Rect {
 // Function needed for accessing the data from the SpatialData interface
 func (c *GeoObj) GetData() *GeoData {
 	return c.geoData
+}
+
+func suggestDownload(country_code2 string) {
+	if details, ok := countries_exp[country_code2]; ok {
+		log.Println("No city data found for", details.Name)
+		log.Println("Download here: http://download.gisgraphy.com/openstreetmap/csv/cities/" + country_code2 + ".tar.bz2")
+	}
 }
 
 // Parses /rg/<lat>/<lng> or /rg/<lat>/<lng>/<precision> and returns a JSON describing the reverse geocoding
@@ -82,14 +91,24 @@ func reverseGeocodingHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	geodata, err := reverseGeocode(rt, lat, lng, precision)
-	if err != nil {
+	if err == ErrNoMatchFound {
+		// Fallback to countries
+		geodata, err = reverseGeocode(rt_countries, lat, lng, precision)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		suggestDownload(geodata.CountryCode_2)
+	} else if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	if details, ok := countries_exp[geodata.CountryCode_2]; ok {
 		geodata.CountryName = details.Name
 		geodata.CountryCode_3 = details.ISO3166_3
 	}
+
 	b, err := json.Marshal(geodata)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -107,15 +126,23 @@ func main() {
 	}
 
 	options := struct {
-		CityFiles    []string      `goptions:"-d, description='Data files to load'"`
-		CountryNames string        `goptions:"-c, description='CSV file holding country names'"`
-		Help         goptions.Help `goptions:"-h, --help, description='Show this help'"`
-		ListenAddr   *net.TCPAddr  `goptions:"-l, --listen, description='Listen address for HTTP server'"`
+		CityFiles     []string      `goptions:"-d, description='Data files to load'"`
+		CountryNames  string        `goptions:"-c, description='CSV file holding country names'"`
+		CountryShapes string        `goptions:"-c, description='CSV file holding country shapes'"`
+		Help          goptions.Help `goptions:"-h, --help, description='Show this help'"`
+		ListenAddr    *net.TCPAddr  `goptions:"-l, --listen, description='Listen address for HTTP server'"`
 	}{
-		CountryNames: "data/countries_en.csv",
-		ListenAddr:   daddr,
+		CountryNames:  "data/countries_en.csv",
+		CountryShapes: "data/countries.csv.bz2",
+		ListenAddr:    daddr,
 	}
 	goptions.ParseAndFail(&options)
+
+	rt_countries = rtreego.NewTree(2, 10, 20)
+	_, err = load_freegeodb_countries_csv(rt_countries, options.CountryShapes)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	countries_exp, err = load_country_names(options.CountryNames)
 	if err != nil {
@@ -132,7 +159,9 @@ func main() {
 		}
 		total_loaded_cities += loaded
 	}
-	log.Println("Loaded", total_loaded_cities, "cities in", time.Now().Sub(start_t))
+	if total_loaded_cities > 0 {
+		log.Println("Loaded", total_loaded_cities, "cities in", time.Now().Sub(start_t))
+	}
 
 	log.Println("Starting HTTP server on", options.ListenAddr)
 	http.HandleFunc("/rg/", reverseGeocodingHandler)
