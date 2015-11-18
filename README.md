@@ -43,6 +43,10 @@ $ curl -s http://127.0.0.1:8080/rg/48.858222/2.2945 | aeson-pretty -s
 }
 ```
 
+Further examples:
+
+- [fg1/exif-revgeo](https://github.com/fg1/exif-revgeo)
+
 
 ## Current GIS data sources
 
