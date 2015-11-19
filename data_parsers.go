@@ -171,12 +171,15 @@ func load_gisgraphy_cities_csv(rt *rtreego.Rtree, fname string) (int, error) {
 			log.Fatal("Error getting bbox", cols, line, err)
 		}
 		obj := GeoObj{rect,
-			&GeoData{City: cols[2],
+			&GeoData{
+				Id:            geodata_nextid,
+				City:          cols[2],
 				CountryCode_2: cols[3],
 				Type:          "city",
 				Geom:          geom}}
 		rt.Insert(&obj)
 		loaded_objects++
+		geodata_nextid++
 	}
 	return loaded_objects, nil
 }
@@ -242,13 +245,16 @@ func load_freegeodb_countries_csv(rt *rtreego.Rtree, fname string) (int, error) 
 			log.Fatal("Error getting bbox", cols, line, err)
 		}
 		obj := GeoObj{rect,
-			&GeoData{CountryName: cols[3],
+			&GeoData{
+				Id:            geodata_nextid,
+				CountryName:   cols[3],
 				CountryCode_2: cols[7],
 				CountryCode_3: cols[8],
 				Type:          "country",
 				Geom:          geom}}
 		rt.Insert(&obj)
 
+		geodata_nextid++
 		loaded_objects++
 	}
 	return loaded_objects, nil

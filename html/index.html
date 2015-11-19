@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset=utf-8 />
+    <title>mugiss data explorer</title>
+
+    <script src='jquery-2.1.4.min.js'></script>
+    <script src='leaflet.js'></script>
+    <link rel="stylesheet" href="leaflet.css" />
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0px;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id='map'></div>
+
+    <script type="text/javascript">
+        var map = L.map('map', {
+            center: [49.5713633, 6.2920875],
+            zoom: 3
+        });
+        map.attributionControl.addAttribution('<a href="https://gihub.com/fg1/mugiss">mugiss</a>');
+
+        var geojsonLayer = L.Class.extend({
+            onAdd: function(map) {
+                this._map = map;
+                this._geoobjs = {};
+                map.on('viewreset', this._reset, this);
+                this._reset();
+            },
+
+            onRemove: function(map) {
+                map.off('viewreset', this._reset, this);
+            },
+
+            _reset: function() {
+                bb = this._map.getBounds();
+                $.ajax({
+                    dataType: "json",
+                    url: "/gj/" + bb.getSouth() + '/' + bb.getWest() + '/' + bb.getNorth() + '/' + bb.getEast() + '.json',
+                    context: this,
+                    success: this._showdata
+                });
+            },
+
+            _showdata: function(data) {
+                // Filter objects which have already been displayed
+                data.features = data.features.filter(function(elem) {
+                    if (elem.properties.id in this._geoobjs) {
+                        return false;
+                    }
+                    this._geoobjs[elem.properties.id] = true;
+                    return true;
+                }, this);
+
+                var geoObj = new L.GeoJSON(data, {
+                    style: {
+                        weight: 1,
+                        opacity: 1
+                    },
+                    onEachFeature: function(feature, layer) {
+                        if (feature.properties.type == 'country') {
+                            layer.bindPopup(feature.properties.country);
+                        } else {
+                            layer.bindPopup(feature.properties.name);
+                        }
+                    }
+                });
+                this._map.addLayer(geoObj);
+            }
+        });
+        map.addLayer(new geojsonLayer());
+    </script>
+</body>
+</html>

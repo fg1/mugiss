@@ -31,7 +31,10 @@ type SpatialData interface {
 	GetData() *GeoData
 }
 
+var geodata_nextid int64 = 0
+
 type GeoData struct {
+	Id            int64          `json:"id"`
 	City          string         `json:"city,omitempty"`
 	CountryName   string         `json:"country"`
 	CountryCode_2 string         `json:"country_iso3166-2"`
@@ -117,6 +120,61 @@ func reverseGeocodingHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
+// Parses /gj/<south>/<west>/<north>/<east>.json and returns a GeoJSON containing the object currently loaded
+func serveGeoJson(w http.ResponseWriter, r *http.Request) {
+	url := r.URL.Path[len("/gj/"):]
+	if strings.HasSuffix(url, ".json") {
+		url = url[:len(url)-len(".json")]
+	}
+
+	params := strings.Split(url, "/")
+	if len(params) != 4 {
+		http.Error(w, "Invalid format for bbox", http.StatusInternalServerError)
+		return
+	}
+
+	// String to float convertion
+	paramsf := make([]float64, 4)
+	for i, v := range params {
+		f, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		paramsf[i] = f
+	}
+
+	bb, _ := rtreego.NewRect(rtreego.Point{paramsf[1], paramsf[0]},
+		[]float64{paramsf[3] - paramsf[1], paramsf[2] - paramsf[0]})
+
+	// results := rt_countries.SearchIntersect(bb)
+	results := rt.SearchIntersect(bb)
+
+	gjc := gjFeatureCollection{
+		Type:     "FeatureCollection",
+		Features: make([]gjFeature, len(results)),
+	}
+
+	for i, res := range results {
+		obj, _ := res.(SpatialData)
+		geod := obj.GetData()
+		gjf, err := ToGjFeature(geod.Geom)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		gjc.Features[i] = gjf
+		gjc.Features[i].Properties = *geod
+	}
+
+	b, err := json.Marshal(gjc)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write(b)
+}
+
 // ---------------------------------------------------------------------------
 
 func main() {
@@ -165,6 +223,8 @@ func main() {
 
 	log.Println("Starting HTTP server on", options.ListenAddr)
 	http.HandleFunc("/rg/", reverseGeocodingHandler)
+	http.HandleFunc("/gj/", serveGeoJson)
+	http.Handle("/", http.FileServer(http.Dir("html")))
 	err = http.ListenAndServe(options.ListenAddr.String(), nil)
 	if err != nil {
 		log.Fatal(err)
