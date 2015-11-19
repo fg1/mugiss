@@ -25,7 +25,7 @@
     <script type="text/javascript">
         var map = L.map('map', {
             center: [49.5713633, 6.2920875],
-            zoom: 3
+            zoom: 9
         });
         map.attributionControl.addAttribution('<a href="https://gihub.com/fg1/mugiss">mugiss</a>');
 
@@ -69,8 +69,8 @@
                     onEachFeature: function(feature, layer) {
                         if (feature.properties.type == 'country') {
                             layer.bindPopup(feature.properties.country);
-                        } else {
-                            layer.bindPopup(feature.properties.name);
+                        } else if (feature.properties.type == 'city') {
+                            layer.bindPopup(feature.properties.city);
                         }
                     }
                 });
