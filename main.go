@@ -31,8 +31,6 @@ type SpatialData interface {
 	GetData() *GeoData
 }
 
-var geodata_nextid int64 = 0
-
 type GeoData struct {
 	Id            int64          `json:"id"`
 	City          string         `json:"city,omitempty"`

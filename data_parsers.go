@@ -12,6 +12,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/dhconnelly/rtreego"
@@ -162,6 +163,11 @@ func load_gisgraphy_cities_csv(rt *rtreego.Rtree, fname string) (int, error) {
 			continue
 		}
 
+		osm_id, err := strconv.ParseInt(cols[1], 10, 64)
+		if err != nil {
+			log.Fatal("Error parsing", cols, line, err)
+		}
+
 		geom, err := geos.FromHex(cols[7])
 		if err != nil {
 			log.Fatal("Error parsing", cols, line, err)
@@ -172,14 +178,13 @@ func load_gisgraphy_cities_csv(rt *rtreego.Rtree, fname string) (int, error) {
 		}
 		obj := GeoObj{rect,
 			&GeoData{
-				Id:            geodata_nextid,
+				Id:            osm_id,
 				City:          cols[2],
 				CountryCode_2: cols[3],
 				Type:          "city",
 				Geom:          geom}}
 		rt.Insert(&obj)
 		loaded_objects++
-		geodata_nextid++
 	}
 	return loaded_objects, nil
 }
@@ -236,6 +241,11 @@ func load_freegeodb_countries_csv(rt *rtreego.Rtree, fname string) (int, error) 
 			continue
 		}
 
+		geodb_id, err := strconv.ParseInt(cols[0], 10, 64)
+		if err != nil {
+			log.Fatal("Error parsing", cols, line, err)
+		}
+
 		geom, err := geos.FromWKT(cols[1])
 		if err != nil {
 			log.Fatal("Error parsing", cols, line, err)
@@ -246,7 +256,7 @@ func load_freegeodb_countries_csv(rt *rtreego.Rtree, fname string) (int, error) 
 		}
 		obj := GeoObj{rect,
 			&GeoData{
-				Id:            geodata_nextid,
+				Id:            geodb_id,
 				CountryName:   cols[3],
 				CountryCode_2: cols[7],
 				CountryCode_3: cols[8],
@@ -254,7 +264,6 @@ func load_freegeodb_countries_csv(rt *rtreego.Rtree, fname string) (int, error) 
 				Geom:          geom}}
 		rt.Insert(&obj)
 
-		geodata_nextid++
 		loaded_objects++
 	}
 	return loaded_objects, nil
