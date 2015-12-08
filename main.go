@@ -115,6 +115,8 @@ func reverseGeocodingHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(b)
 }
 
@@ -142,8 +144,12 @@ func serveGeoJson(w http.ResponseWriter, r *http.Request) {
 		paramsf[i] = f
 	}
 
-	bb, _ := rtreego.NewRect(rtreego.Point{paramsf[1], paramsf[0]},
+	bb, err := rtreego.NewRect(rtreego.Point{paramsf[1], paramsf[0]},
 		[]float64{paramsf[3] - paramsf[1], paramsf[2] - paramsf[0]})
+	if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+	}
 
 	// results := rt_countries.SearchIntersect(bb)
 	results := rt.SearchIntersect(bb)
@@ -158,8 +164,7 @@ func serveGeoJson(w http.ResponseWriter, r *http.Request) {
 		geod := obj.GetData()
 		gjf, err := ToGjFeature(geod.Geom)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+			continue
 		}
 		gjc.Features[i] = gjf
 		gjc.Features[i].Properties = *geod
@@ -170,6 +175,8 @@ func serveGeoJson(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(b)
 }
 
