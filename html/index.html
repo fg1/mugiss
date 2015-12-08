@@ -29,6 +29,13 @@
         });
         map.attributionControl.addAttribution('<a href="https://gihub.com/fg1/mugiss">mugiss</a>');
 
+        // More info: http://leaflet-extras.github.io/leaflet-providers/preview/index.html
+        var OpenStreetMap_Mapnik = L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        });
+        OpenStreetMap_Mapnik.addTo(map);
+
         var geojsonLayer = L.Class.extend({
             onAdd: function(map) {
                 this._map = map;
@@ -70,7 +77,7 @@
                         if (feature.properties.type == 'country') {
                             layer.bindPopup(feature.properties.country);
                         } else if (feature.properties.type == 'city') {
-                            layer.bindPopup(feature.properties.city);
+                            layer.bindPopup(feature.properties.city + '<br/><a href="https://www.openstreetmap.org/relation/' + feature.properties.id + '">R' + feature.properties.id  + '</a>');
                         }
                     }
                 });
