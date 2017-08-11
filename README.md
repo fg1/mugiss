@@ -23,7 +23,7 @@ $ go build
 
 ## Usage
 
-A CSV file with the country and cities you're interested in is needed. [`mugiss_extract`](https://github.com/fg1/mugiss_extract) can be used for this purpose, or you can use files from the [gisgraph website](http://download.gisgraphy.com/openstreetmap/csv/cities/).
+A CSV file with the country and cities you're interested in is needed. [`mugiss-extract`](https://github.com/fg1/mugiss-extract) can be used for this purpose, or you can use files from the [gisgraph website](http://download.gisgraphy.com/openstreetmap/csv/cities/).
 
 You can then start the webserver:
 ```
