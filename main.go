@@ -147,8 +147,8 @@ func serveGeoJson(w http.ResponseWriter, r *http.Request) {
 	bb, err := rtreego.NewRect(rtreego.Point{paramsf[1], paramsf[0]},
 		[]float64{paramsf[3] - paramsf[1], paramsf[2] - paramsf[0]})
 	if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	// results := rt_countries.SearchIntersect(bb)

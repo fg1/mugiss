@@ -159,6 +159,9 @@ func load_gisgraphy_cities_csv(rt *rtreego.Rtree, fname string) (int, error) {
 			return loaded_objects, err
 		}
 		line++
+		if len(cols) != 11 {
+			log.Fatal("Invalid number of columns:", cols, line)
+		}
 		if len(cols[7]) == 0 {
 			continue
 		}
